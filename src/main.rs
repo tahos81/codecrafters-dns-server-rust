@@ -1,8 +1,14 @@
+#![warn(clippy::all)]
+#![warn(clippy::pedantic)]
+#![allow(clippy::similar_names)]
 use std::net::UdpSocket;
 
 use crate::{
-    parsers::{header::parse_dns_header, question::parse_dns_question},
-    types::header::{DnsHeader, DnsHeaderStruct},
+    parsers::{header, question},
+    types::{
+        header::{DnsHeader, DnsHeaderStruct},
+        question::DnsQuestion,
+    },
 };
 use anyhow::Result;
 
@@ -18,19 +24,16 @@ fn main() -> Result<()> {
             Ok((size, source)) => {
                 println!("Received {} bytes from {}", size, source);
                 let (remaining, request_header) =
-                    parse_dns_header(&buf).map_err(|err| err.to_owned())?;
+                    header::parse(&buf).map_err(|err| err.to_owned())?;
                 let (_remaining, request_question) =
-                    parse_dns_question(remaining).map_err(|err| err.to_owned())?;
+                    question::parse(remaining).map_err(|err| err.to_owned())?;
                 let response_header = DnsHeaderStruct::builder(request_header.id)
                     .qr(1)
                     .qdcount(request_header.qdcount)
                     .build();
-                let response_question = request_question;
-                let response = [
-                    &DnsHeader::from(response_header),
-                    Vec::from(response_question).as_slice(),
-                ]
-                .concat();
+                let response_header = DnsHeader::from(response_header);
+                let response_question = DnsQuestion::from(request_question);
+                let response = [response_header.as_slice(), response_question.as_slice()].concat();
                 udp_socket
                     .send_to(response.as_slice(), source)
                     .expect("Failed to send response");
