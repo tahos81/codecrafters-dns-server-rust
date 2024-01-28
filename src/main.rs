@@ -1,12 +1,12 @@
 use std::net::UdpSocket;
 
 use crate::{
-    parser::parse_dns_header,
+    parsers::{header::parse_dns_header, question::parse_dns_question},
     types::header::{DnsHeader, DnsHeaderStruct},
 };
 use anyhow::Result;
 
-mod parser;
+mod parsers;
 mod types;
 
 fn main() -> Result<()> {
@@ -17,10 +17,22 @@ fn main() -> Result<()> {
         match udp_socket.recv_from(&mut buf) {
             Ok((size, source)) => {
                 println!("Received {} bytes from {}", size, source);
-                let (_, dns_header) = parse_dns_header(&buf).map_err(|err| err.to_owned())?;
-                let response = DnsHeaderStruct::builder(dns_header.id).qr(1).build();
+                let (remaining, request_header) =
+                    parse_dns_header(&buf).map_err(|err| err.to_owned())?;
+                let (_remaining, request_question) =
+                    parse_dns_question(remaining).map_err(|err| err.to_owned())?;
+                let response_header = DnsHeaderStruct::builder(request_header.id)
+                    .qr(1)
+                    .qdcount(request_header.qdcount)
+                    .build();
+                let response_question = request_question;
+                let response = [
+                    &DnsHeader::from(response_header),
+                    Vec::from(response_question).as_slice(),
+                ]
+                .concat();
                 udp_socket
-                    .send_to(&DnsHeader::from(response), source)
+                    .send_to(response.as_slice(), source)
                     .expect("Failed to send response");
             }
             Err(e) => {
