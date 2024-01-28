@@ -1,9 +1,10 @@
 pub type DnsQuestion = Vec<u8>;
 
+#[derive(Debug, Clone)]
 pub struct DnsQuestionStruct {
-    name: String,
-    record_type: u16,
-    class: u16,
+    pub name: String,
+    pub record_type: u16,
+    pub class: u16,
 }
 
 impl DnsQuestionStruct {

@@ -11,6 +11,7 @@ use crate::{
     },
 };
 use anyhow::Result;
+use types::record::{DnsRecord, DnsRecordStruct};
 
 mod parsers;
 mod types;
@@ -21,8 +22,7 @@ fn main() -> Result<()> {
     loop {
         let mut buf = [0; 512];
         match udp_socket.recv_from(&mut buf) {
-            Ok((size, source)) => {
-                println!("Received {} bytes from {}", size, source);
+            Ok((_size, source)) => {
                 let (remaining, request_header) =
                     header::parse(&buf).map_err(|err| err.to_owned())?;
                 let (_remaining, request_question) =
@@ -30,16 +30,30 @@ fn main() -> Result<()> {
                 let response_header = DnsHeaderStruct::builder(request_header.id)
                     .qr(1)
                     .qdcount(request_header.qdcount)
+                    .ancount(request_header.qdcount)
                     .build();
                 let response_header = DnsHeader::from(response_header);
-                let response_question = DnsQuestion::from(request_question);
-                let response = [response_header.as_slice(), response_question.as_slice()].concat();
+                let response_question = DnsQuestion::from(request_question.clone());
+                let response_record = DnsRecordStruct::new(
+                    request_question.name,
+                    request_question.record_type,
+                    request_question.class,
+                    60,
+                    vec![8, 8, 8, 8],
+                );
+                let response_record = DnsRecord::from(response_record);
+                let response = [
+                    response_header.as_slice(),
+                    response_question.as_slice(),
+                    response_record.as_slice(),
+                ]
+                .concat();
                 udp_socket
                     .send_to(response.as_slice(), source)
                     .expect("Failed to send response");
             }
             Err(e) => {
-                eprintln!("Error receiving data: {}", e);
+                eprintln!("Error receiving data: {e}");
                 break;
             }
         }
