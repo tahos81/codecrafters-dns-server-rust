@@ -29,8 +29,11 @@ fn main() -> Result<()> {
                     question::parse(remaining).map_err(|err| err.to_owned())?;
                 let response_header = DnsHeaderStruct::builder(request_header.id)
                     .qr(1)
+                    .opcode(request_header.opcode)
+                    .flags(request_header.flags)
                     .qdcount(request_header.qdcount)
                     .ancount(request_header.qdcount)
+                    .rcode(if request_header.opcode == 0 { 0 } else { 4 })
                     .build();
                 let response_header = DnsHeader::from(response_header);
                 let response_question = DnsQuestion::from(request_question.clone());
