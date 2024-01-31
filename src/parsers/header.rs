@@ -5,9 +5,9 @@ use nom::{
     IResult,
 };
 
-use crate::types::header::DnsHeaderStruct;
+use crate::types::header::DnsHeader;
 
-pub fn parse(input: &[u8]) -> IResult<&[u8], DnsHeaderStruct> {
+pub fn parse(input: &[u8]) -> IResult<&[u8], DnsHeader> {
     let (remaining, (id, qr, opcode, flags, z, rcode, qdcount, ancount, nscount, arcount)) =
         bits::<_, _, Error<(&[u8], usize)>, _, _>(tuple((
             take(16usize),
@@ -24,7 +24,7 @@ pub fn parse(input: &[u8]) -> IResult<&[u8], DnsHeaderStruct> {
 
     Ok((
         remaining,
-        DnsHeaderStruct::builder(id)
+        DnsHeader::builder(id)
             .qr(qr)
             .opcode(opcode)
             .flags(flags)

@@ -1,7 +1,7 @@
-pub type DnsHeader = [u8; 12];
+use super::Serializable;
 
 #[derive(Debug)]
-pub struct DnsHeaderStruct {
+pub struct DnsHeader {
     pub id: u16,
     pub qr: u8,
     pub opcode: u8,
@@ -14,7 +14,7 @@ pub struct DnsHeaderStruct {
     pub arcount: u16,
 }
 
-impl DnsHeaderStruct {
+impl DnsHeader {
     pub fn new(
         id: u16,
         qr: u8,
@@ -27,7 +27,7 @@ impl DnsHeaderStruct {
         nscount: u16,
         arcount: u16,
     ) -> Self {
-        DnsHeaderStruct {
+        Self {
             id,
             qr,
             opcode,
@@ -45,21 +45,21 @@ impl DnsHeaderStruct {
     }
 }
 
-impl From<DnsHeaderStruct> for DnsHeader {
-    fn from(value: DnsHeaderStruct) -> Self {
+impl Serializable<[u8; 12]> for DnsHeader {
+    fn serialize(&self) -> [u8; 12] {
         let mut header = [0; 12];
-        header[0] = (value.id >> 8) as u8;
-        header[1] = value.id as u8;
-        header[2] = value.qr << 7 | value.opcode << 3 | value.flags >> 1;
-        header[3] = value.flags << 7 | value.z << 4 | value.rcode;
-        header[4] = (value.qdcount >> 8) as u8;
-        header[5] = value.qdcount as u8;
-        header[6] = (value.ancount >> 8) as u8;
-        header[7] = value.ancount as u8;
-        header[8] = (value.nscount >> 8) as u8;
-        header[9] = value.nscount as u8;
-        header[10] = (value.arcount >> 8) as u8;
-        header[11] = value.arcount as u8;
+        header[0] = (self.id >> 8) as u8;
+        header[1] = self.id as u8;
+        header[2] = self.qr << 7 | self.opcode << 3 | self.flags >> 1;
+        header[3] = self.flags << 7 | self.z << 4 | self.rcode;
+        header[4] = (self.qdcount >> 8) as u8;
+        header[5] = self.qdcount as u8;
+        header[6] = (self.ancount >> 8) as u8;
+        header[7] = self.ancount as u8;
+        header[8] = (self.nscount >> 8) as u8;
+        header[9] = self.nscount as u8;
+        header[10] = (self.arcount >> 8) as u8;
+        header[11] = self.arcount as u8;
         header
     }
 }
@@ -131,8 +131,8 @@ impl DnsHeaderBuilder {
         self
     }
 
-    pub fn build(self) -> DnsHeaderStruct {
-        DnsHeaderStruct::new(
+    pub fn build(self) -> DnsHeader {
+        DnsHeader::new(
             self.id,
             self.qr.unwrap_or(1),
             self.opcode.unwrap_or(0),
