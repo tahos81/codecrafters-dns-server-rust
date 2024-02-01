@@ -1,5 +1,5 @@
-pub mod header;
+mod header;
 mod label;
 pub mod packet;
-pub mod question;
-pub mod record;
+mod question;
+mod record;
