@@ -59,7 +59,7 @@ fn prepare_response_header(request_header: &DnsHeader) -> DnsHeader {
 }
 
 fn prepare_response_answers(request_packet: &DnsPacket) -> Result<Vec<DnsRecord>> {
-    let args = std::env::args().collect::<Vec<String>>();
+    let resolver_addr = std::env::args().nth(2).expect("Missing resolver address");
     let resolver_socket = UdpSocket::bind("127.0.0.1:8000").expect("Failed to bind to resolver");
     let request_header = &request_packet.header;
     let request_questions = &request_packet.questions;
@@ -76,7 +76,7 @@ fn prepare_response_answers(request_packet: &DnsPacket) -> Result<Vec<DnsRecord>
             question.serialize().as_slice(),
         ]
         .concat();
-        resolver_socket.send_to(query.as_slice(), args[2].as_str())?;
+        resolver_socket.send_to(query.as_slice(), resolver_addr.as_str())?;
         let mut buf = [0; 512];
         resolver_socket.recv_from(&mut buf)?;
         let (_, response_packet) = packet::parse(&buf).map_err(|err| err.to_owned())?;
